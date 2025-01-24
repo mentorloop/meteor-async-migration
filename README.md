@@ -21,7 +21,10 @@ Transform file: **transform.ts**
 It will convert the current sync function call (using Fiber) to new async APIs. e.g: convert `Links.findOne()` to `await Links.findOneAsync()`
 It also convert the function which uses these new async apis to async function.
 
-Command: `DEBUG="transform:print*" jscodeshift -t transform.ts YOUR_CODEBASE_DIR --parser=tsx`
+Add your collection name to the `COLLECTION_NAMES_TO_TRANSFORM` array at `transform.ts` to transform specific collections to Async.
+
+
+Command: `DEBUG="transform:print*" jscodeshift -t transform.ts YOUR_CODEBASE_DIR`
 
 **ATTENTION:** Only run this script against your **Server APIs**. You should not convert the front-end UI to use these new async functions.
 
