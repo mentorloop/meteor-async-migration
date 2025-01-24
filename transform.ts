@@ -50,7 +50,17 @@ module.exports = function (fileInfo: FileInfo, { j }: API, options: Options) {
   let fileChanged = false;
 
   const rootCollection = j(fileInfo.source);
-  // debug(rootCollection)
+  // debug(rootCollection);
+
+  // Add collection names to transform
+  // If the array is empty, all collections will be transformed
+  const COLLECTION_NAMES_TO_TRANSFORM = [
+    "Notifications",
+  ];
+
+  const isCollectionToTransform = (name: string) => {
+    return COLLECTION_NAMES_TO_TRANSFORM.includes(name) || COLLECTION_NAMES_TO_TRANSFORM.length === 0;
+  };
 
   const findImportPath = (variableName: string): undefined | ASTPath => {
     let importPath: undefined | ASTPath;
@@ -59,7 +69,7 @@ module.exports = function (fileInfo: FileInfo, { j }: API, options: Options) {
         name: variableName,
       })
       .at(0)
-      .map((p2) => {
+      .map(p2 => {
         if (p2.parent?.parent?.value.type === "ImportDeclaration") {
           importPath = p2.parent?.parent;
         }
@@ -89,7 +99,7 @@ module.exports = function (fileInfo: FileInfo, { j }: API, options: Options) {
       debug("import path", importPath.value.source.value);
 
       let importSpec = "";
-      importPath.value.specifiers?.map((spec) => {
+      importPath.value.specifiers?.map(spec => {
         debug("spec.local?.name", spec.local?.name);
         if (spec.local?.name !== name) {
           return;
@@ -139,7 +149,7 @@ module.exports = function (fileInfo: FileInfo, { j }: API, options: Options) {
           case "VariableDeclaration": {
             debug("variable declaration:", node.declaration.declarations);
             let is;
-            node.declaration.declarations.map((dp) => {
+            node.declaration.declarations.map(dp => {
               if (
                 dp.type === "VariableDeclarator" &&
                 dp.id.type === "Identifier" &&
@@ -182,7 +192,7 @@ module.exports = function (fileInfo: FileInfo, { j }: API, options: Options) {
       let isExportedMongoCollection = false;
       switch (importSpec) {
         case "default":
-          importedRootCollection.find(j.ExportDefaultDeclaration).map((xp) => {
+          importedRootCollection.find(j.ExportDefaultDeclaration).map(xp => {
             debug("export default node:", j(xp).toSource());
             if (handleExportDeclaration(xp.value)) {
               isExportedMongoCollection = true;
@@ -191,7 +201,7 @@ module.exports = function (fileInfo: FileInfo, { j }: API, options: Options) {
           });
           break;
         case "named":
-          importedRootCollection.find(j.ExportNamedDeclaration).map((xp) => {
+          importedRootCollection.find(j.ExportNamedDeclaration).map(xp => {
             debug("export named node:", j(xp).toSource());
             if (handleExportDeclaration(xp.value)) {
               isExportedMongoCollection = true;
@@ -233,6 +243,7 @@ module.exports = function (fileInfo: FileInfo, { j }: API, options: Options) {
 
           return isMongoCollection(callee.object.name, rootCollection);
         }
+        return false;
       }
       case "MemberExpression": {
         if (
@@ -285,7 +296,7 @@ module.exports = function (fileInfo: FileInfo, { j }: API, options: Options) {
   };
 
   // find all Member expression
-  rootCollection.find(j.MemberExpression).map((p) => {
+  rootCollection.find(j.MemberExpression).map(p => {
     // debug("found member expression", p.value);
     if (p.value.property.type === "Identifier") {
       switch (p.value.property.name) {
@@ -353,12 +364,14 @@ module.exports = function (fileInfo: FileInfo, { j }: API, options: Options) {
         case "dropIndex":
         case "dropCollection": {
           if (!checkCalleeObject(p.value)) {
+            // break;
+          }
+          if (!isCollectionToTransform(p.value.object.name)) {
             break;
           }
 
           // convert rename property
           p.value.property.name = methodsMapping[p.value.property.name];
-
           switchToAsyncApi(p);
 
           break;
@@ -381,6 +394,11 @@ module.exports = function (fileInfo: FileInfo, { j }: API, options: Options) {
               }
 
               // convert rename property
+              // TODO: 3;
+              if (!isCollectionToTransform(p.value.object.name)) {
+                break;
+              }
+              console.log("p.value.property.name2", p.value.property.name);
               p.value.property.name = methodsMapping[p.value.property.name];
 
               switchToAsyncApi(p);
@@ -424,6 +442,10 @@ module.exports = function (fileInfo: FileInfo, { j }: API, options: Options) {
                 const callExpression = findParentCallExpression(p);
                 if (callExpression) {
                   // convert rename property
+                  if (!isCollectionToTransform(p.value.object.name)) {
+                    break;
+                  }
+
                   p.value.property.name = methodsMapping[p.value.property.name];
 
                   switchToAsyncApi(p);
