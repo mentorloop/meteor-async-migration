@@ -1,4 +1,5 @@
 {
+  "name": "mentorloop-meteor-async-migration",
   "scripts": {
     "samples": "jscodeshift -t transform.ts --dry -p --parser=tsx ./samples",
     "debug:samples": "DEBUG=transform:* jscodeshift -c 1 -t transform.ts --dry -p --parser=tsx ./samples",
