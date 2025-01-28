@@ -23,10 +23,12 @@ export const addAwaitKeyword = (p: ASTPath<CallExpression>, j: JSCodeshift) => {
     return false;
   }
 
-  // Check if this is a return statement in an async function
-  if (p.parentPath?.value.type === "ReturnStatement") {
-    debug("parent is return statement");
-    return false;
+  // Handle both explicit returns and arrow function implicit returns
+  const parentNode = p.parentPath?.value;
+  if (parentNode?.type === "ReturnStatement" || 
+      (parentNode?.type === "ArrowFunctionExpression" && parentNode.body === p.value)) {
+      debug("skip await in async function return/arrow return");
+      return false; 
   }
 
   debug("add await keyword", p.parentPath.parentPath.value);
