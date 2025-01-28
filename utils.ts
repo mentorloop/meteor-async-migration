@@ -17,9 +17,15 @@ import { type } from "os";
 const debug = require("debug")("transform:utils");
 
 export const addAwaitKeyword = (p: ASTPath<CallExpression>, j: JSCodeshift) => {
-  // debug('need add await', j(p).toSource(), p)
+  // Check if already has await
   if (p.parentPath?.value.type === "AwaitExpression") {
     debug("already has await expression");
+    return false;
+  }
+
+  // Check if this is a return statement in an async function
+  if (p.parentPath?.value.type === "ReturnStatement") {
+    debug("parent is return statement");
     return false;
   }
 
@@ -44,6 +50,8 @@ export const addAwaitKeyword = (p: ASTPath<CallExpression>, j: JSCodeshift) => {
   j(p).replaceWith(awaitNode);
   return true;
 };
+
+
 
 export const findParentPromiseAll = (p: ASTPath) => {
   if (!p || !p.parentPath || p.parentPath.value.type === "BlockStatement") {
